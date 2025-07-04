@@ -1,4 +1,5 @@
 import pygame
+from random import randint
 
 # Inisialisasi semua modul pygame
 pygame.init()
@@ -41,10 +42,31 @@ player_rect = player.get_rect(midbottom=(80, 300))
 
 # Variabel gravitasi untuk pemain (digunakan saat lompat)
 player_gravity = 0
+jump_sound = pygame.mixer.Sound('gallery/audio/jump.mp3')
 
 # Memuat latar belakang dan tanah
 skybox = pygame.image.load('gallery/sprites/Sky.png').convert()
 ground = pygame.image.load('gallery/sprites/Ground.png').convert()
+enemy_frame1 = pygame.image.load("gallery/sprites/enemies/Enemy.png").convert_alpha()
+enemy_frame2 = pygame.image.load("gallery/sprites/enemies/Enemy_2.png").convert_alpha()
+enemy_frames = [enemy_frame1, enemy_frame2]
+enemy_frame_index = 0
+enemy2_frame1 = pygame.image.load("gallery/sprites/enemies/Enemy2.png").convert_alpha()
+enemy2_frame2 = pygame.image.load("gallery/sprites/enemies/Enemy2_2.png").convert_alpha()
+enemy2_frames = [enemy2_frame1, enemy2_frame2]
+enemy2_frame_index = 0
+enemy2 = enemy2_frames[enemy2_frame_index]
+
+obstacle_rect_list = []
+obstacle_timer = pygame.USEREVENT + 1
+pygame.time.set_timer(obstacle_timer, 1000)
+
+enemy_animation_timer = pygame.USEREVENT + 2
+pygame.time.set_timer(enemy_animation_timer, 200)
+
+enemy2_animation_timer = pygame.USEREVENT + 3
+pygame.time.set_timer(enemy2_animation_timer, 500)
+enemy = enemy_frames[enemy_frame_index]
 
 # Fungsi untuk menampilkan permainan saat aktif
 def active_game():
@@ -52,7 +74,11 @@ def active_game():
     window_screen.blit(skybox, (0,0))         # Tampilkan background
     window_screen.blit(ground, (0, 320))      # Tampilkan tanah/ground
     score = display_score()                   # Tampilkan skor saat ini
-    player_animation()                        # Jalankan animasi pemain
+    player_gravity += 1
+    player_rect.y += player_gravity
+    if player_rect.bottom >= 320:
+        player_rect.bottom = 320    
+        player_animation()                        # Jalankan animasi pemain
     window_screen.blit(player, player_rect)   # Tampilkan pemain di layar
 
 # Fungsi untuk menampilkan layar saat permainan belum dimulai / tidak aktif
@@ -82,12 +108,39 @@ def display_score():
     return current_time  # Kembalikan nilai skor
 
 # Fungsi animasi pemain agar terlihat berjalan
+def spawn_enemy():
+    global enemy_frame_index, enemy2_frame_index, enemy, enemy2
+    if event.type == obstacle_timer:
+        if randint(0, 2):
+            printd(enemy has been spawned)
+            obstacle_rect_list.append(enemy.get_rect(bottomright = (randint(900, 1100), 320)))
+        else:
+            obstacle_rect_list.append(enemy2.get_rect(bottomright = (randint(900, 1100), 210)))
+
+    if event.type == enemy_animation_timer:
+        if enemy_frame_index == 0:
+            enemy_frame_index = 1
+        else:
+            enemy_frame_index = 0
+        enemy = enemy_frames[enemy_frame_index]
+
+    if event.type == enemy2_animation_timer:
+        if enemy2_frame_index == 0:
+            enemy2_frame_index = 1
+        else:
+            enemy2_frame_index = 0
+        enemy2 = enemy2_frames[enemy2_frame_index]
+    
 def player_animation():
     global player_index, player
     player_index += 0.1  # Tambah indeks sedikit demi sedikit untuk animasi halus
-    if player_index >= len(player_walk):  # Jika melebihi jumlah frame animasi, reset ke 0
-        player_index = 0
-    player = player_walk[int(player_index)]  # Update gambar pemain
+    if player_rect.bottom< 320:# Jika melebihi jumlah frame animasi, reset ke 0
+        player = player_jump
+    else: 
+        player_index += 0.1
+        if player_index >=(player_walk):
+            player_index = 0
+        player = player_walk[int(player_index)]# Update gambar pemain
 
 # Loop utama game
 while True:
@@ -99,6 +152,11 @@ while True:
 
         if game_active:
             # Jika game sedang aktif, tidak ada aksi khusus di sini
+            spawn_enemy()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    jump_sound.play()
+                    player_gravity = -20
             print("Game Active")
         else:
             # Jika game belum aktif, mulai game saat tombol spasi ditekan
