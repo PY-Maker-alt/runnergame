@@ -2,7 +2,12 @@ import pygame
 from random import randint
 
 # Inisialisasi semua modul pygame
+import pygame
+
 pygame.init()
+window_screen = pygame.display.set_mode((800, 400))  # Wajib untuk convert_alpha()
+
+enemy = pygame.image.load('enemy.png').convert_alpha()
 
 # Ukuran layar permainan
 frame_size_x = 800 
@@ -30,7 +35,14 @@ game_active = False  # Permainan belum aktif saat pertama kali dijalankan
 # Memuat sprite (gambar) untuk animasi berjalan pemain
 player_walk_1 = pygame.image.load("gallery/sprites/player/Player.png").convert_alpha()
 player_walk_2 = pygame.image.load("gallery/sprites/player/Player2.png").convert_alpha()
-player_walk = [player_walk_1, player_walk_2]  # Disimpan dalam list untuk animasi
+player_walk = [player_walk_1, player_walk_2]  # list animasi jalan
+player_index = 0
+
+def player_animation():
+    global player_index
+    player_index += 0.1
+    if player_index >= len(player_walk):
+        player_index = 0
 player_index = 0  # Indeks awal animasi pemain
 player = player_walk[player_index]  # Gambar pemain saat ini
 
@@ -43,6 +55,9 @@ player_rect = player.get_rect(midbottom=(80, 300))
 # Variabel gravitasi untuk pemain (digunakan saat lompat)
 player_gravity = 0
 jump_sound = pygame.mixer.Sound('gallery/audio/jump.mp3')
+back_sound = pygame.mixer.Sound('gallery/audio/backsound.mp3')
+back_sound.play(loops=-1)
+back_sound.set_volume(0.5)
 
 # Memuat latar belakang dan tanah
 skybox = pygame.image.load('gallery/sprites/Sky.png').convert()
@@ -65,7 +80,7 @@ enemy_animation_timer = pygame.USEREVENT + 2
 pygame.time.set_timer(enemy_animation_timer, 200)
 
 enemy2_animation_timer = pygame.USEREVENT + 3
-pygame.time.set_timer(enemy2_animation_timer, 500)
+pygame.time.set_timer(enemy2_animation_timer, 500)  
 enemy = enemy_frames[enemy_frame_index]
 
 # Fungsi untuk menampilkan permainan saat aktif
@@ -78,8 +93,9 @@ def active_game():
     player_rect.y += player_gravity
     if player_rect.bottom >= 320:
         player_rect.bottom = 320    
-        player_animation()                        # Jalankan animasi pemain
+        player_animation()                        
     window_screen.blit(player, player_rect)   # Tampilkan pemain di layar
+    obstacle_rect_list = obstacle_movement(obstacle_rect_list)
 
 # Fungsi untuk menampilkan layar saat permainan belum dimulai / tidak aktif
 def inactive_game():
@@ -108,11 +124,27 @@ def display_score():
     return current_time  # Kembalikan nilai skor
 
 # Fungsi animasi pemain agar terlihat berjalan
+def obstacle_movement(obstacle_list):
+    if obstacle_list:
+        for obstacle_rect in obstacle_list:
+            obstacle_rect.x -= 5  # Geser musuh ke kiri sebanyak 5 piksel
+
+            # Tampilkan musuh yang berbeda tergantung posisinya
+            if obstacle_rect.bottom == 320:
+                window_screen.blit(enemy, obstacle_rect)
+            else:
+                window_screen.blit(enemy2, obstacle_rect)
+
+        # Hapus obstacle yang keluar layar
+        obstacle_list = [obstacle for obstacle in obstacle_list if obstacle.x > -100]
+        return obstacle_list
+    else:
+        return []
 def spawn_enemy():
     global enemy_frame_index, enemy2_frame_index, enemy, enemy2
     if event.type == obstacle_timer:
         if randint(0, 2):
-            printd(enemy has been spawned)
+            print("enemy has been spawned")
             obstacle_rect_list.append(enemy.get_rect(bottomright = (randint(900, 1100), 320)))
         else:
             obstacle_rect_list.append(enemy2.get_rect(bottomright = (randint(900, 1100), 210)))
@@ -123,7 +155,14 @@ def spawn_enemy():
         else:
             enemy_frame_index = 0
         enemy = enemy_frames[enemy_frame_index]
+enemy2_frame1 = pygame.image.load("gallery/sprites/enemies/Enemy2.png").convert_alpha()
+enemy2_frame2 = pygame.image.load("gallery/sprites/enemies/Enemy2_2.png").convert_alpha()
+enemy2_frames = [enemy2_frame1, enemy2_frame2]
+enemy2_frame_index = 0
+enemy2 = enemy2_frames[enemy2_frame_index]
 
+
+for event in pygame.event.get():
     if event.type == enemy2_animation_timer:
         if enemy2_frame_index == 0:
             enemy2_frame_index = 1
@@ -138,7 +177,7 @@ def player_animation():
         player = player_jump
     else: 
         player_index += 0.1
-        if player_index >=(player_walk):
+        if player_index >= len (player_walk):
             player_index = 0
         player = player_walk[int(player_index)]# Update gambar pemain
 
